@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Números hasta el 1000 - Juego</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    background:
+      linear-gradient(#73b9e8 0 18%, #9edcff 18% 34%, #6dbb4b 34% 37%, #5b9f3c 37% 100%);
+    color: #fff;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    opacity:.16;
+    background-image:
+      linear-gradient(90deg, rgba(0,0,0,.15) 1px, transparent 1px),
+      linear-gradient(rgba(0,0,0,.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .wrap { max-width: 1250px; margin: 0 auto; padding: 18px 18px 30px; position:relative; }
+  header {
+    background:#3b3b3b;
+    border:5px solid #171717;
+    box-shadow: 0 7px 0 #171717, inset 0 0 0 3px #686868;
+    padding:14px 18px;
+    text-align:center;
+    margin-bottom:18px;
+  }
+  h1 {
+    margin:0;
+    font-size: clamp(24px, 4vw, 42px);
+    letter-spacing:1px;
+    text-shadow: 3px 3px #111;
+  }
+  .subtitle { margin:7px 0 0; font-size:16px; color:#ddd; }
+  .controls {
+    display:flex; flex-wrap:wrap; gap:9px; justify-content:center; align-items:center;
+    margin: 10px 0 18px;
+  }
+  button, .range {
+    font:700 16px "Trebuchet MS", Arial, sans-serif;
+    border:4px solid #202020;
+    box-shadow: 0 4px 0 #111, inset 0 0 0 2px rgba(255,255,255,.2);
+  }
+  button {
+    background:#6f6f6f; color:#fff; padding:9px 14px; cursor:pointer;
+    min-width:105px;
+  }
+  button:hover { filter:brightness(1.12); transform:translateY(-1px); }
+  button:active { transform:translateY(3px); box-shadow:0 1px 0 #111; }
+  button.green { background:#4f9f43; }
+  button.orange { background:#b97732; }
+  .range {
+    background:#333; padding:9px 14px; min-width:145px; text-align:center;
+  }
+  .grid {
+    display:grid;
+    grid-template-columns: repeat(10, minmax(48px, 1fr));
+    gap:6px;
+    background:#3d3d3d;
+    border:6px solid #222;
+    padding:9px;
+    box-shadow:0 8px 0 #171717, inset 0 0 0 3px #6a6a6a;
+  }
+  .num {
+    aspect-ratio: 1.35 / 1;
+    border:3px solid #252525;
+    background:#b9b9b9;
+    color:#151515;
+    font-size:clamp(13px, 2vw, 22px);
+    font-weight:900;
+    cursor:pointer;
+    box-shadow: inset 0 0 0 2px #e4e4e4, 0 3px 0 #171717;
+    display:flex; align-items:center; justify-content:center;
+    user-select:none;
+    transition:filter .1s, transform .1s;
+  }
+  .num:hover { filter:brightness(1.12); transform:scale(1.03); }
+  .num.missing {
+    background:#242424;
+    color:#7dff68;
+    box-shadow: inset 0 0 0 2px #454545, 0 3px 0 #111;
+  }
+  .num.missing::after { content:"?"; font-size:1.25em; }
+  .num.missing .value { display:none; }
+  .legend {
+    margin-top:14px;
+    background:#2f2f2f;
+    border:4px solid #171717;
+    padding:10px 14px;
+    text-align:center;
+    box-shadow:0 4px 0 #111;
+    font-size:15px;
+  }
+  .legend b { color:#8cff6f; }
+  .progress {
+    margin:12px auto 0; max-width:600px; height:14px; background:#202020;
+    border:3px solid #111; overflow:hidden;
+  }
+  .bar { height:100%; width:0%; background:#70d957; transition:width .2s; }
+  .toast {
+    position:fixed; left:50%; bottom:22px; transform:translate(-50%, 120px);
+    background:#252525; color:#fff; border:4px solid #111; padding:10px 16px;
+    box-shadow:0 5px 0 #111; font-weight:700; transition:transform .2s; z-index:10;
+  }
+  .toast.show { transform:translate(-50%,0); }
+  @media (max-width: 700px) {
+    .grid { grid-template-columns:repeat(5, 1fr); }
+    .num { aspect-ratio:1.5 / 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⛏️ LOS NÚMEROS HASTA EL 1000 ⛏️</h1>
+    <div class="subtitle">Haz clic en un número para esconderlo. ¡Adivina cuál falta y vuelve a hacer clic para descubrirlo!</div>
+  </header>
+
+  <div class="controls">
+    <button id="prev">◀ Anterior</button>
+    <div class="range" id="range">1 – 100</div>
+    <button id="next">Siguiente ▶</button>
+    <button class="orange" id="hideRandom">🎲 Esconder 1</button>
+    <button class="green" id="hideSeveral">🧩 Esconder 5</button>
+    <button id="showAll">👀 Mostrar todos</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="legend">
+    <b>🟩 ?</b> = número escondido · Haz clic otra vez sobre la casilla para comprobar la respuesta.
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div id="status">0 números escondidos</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const pages = [];
+for (let start = 1; start <= 1000; start += 100) pages.push({start, end: Math.min(start+99,1000)});
+let page = 0;
+const hidden = new Set();
+
+const grid = document.getElementById("grid");
+const range = document.getElementById("range");
+const status = document.getElementById("status");
+const bar = document.getElementById("bar");
+const toast = document.getElementById("toast");
+
+function render() {
+  const {start,end} = pages[page];
+  range.textContent = `${start} – ${end}`;
+  grid.innerHTML = "";
+  for (let n=start; n<=end; n++) {
+    const cell=document.createElement("div");
+    cell.className="num" + (hidden.has(n) ? " missing" : "");
+    cell.innerHTML=`<span class="value">${n}</span>`;
+    cell.title=hidden.has(n) ? "Haz clic para mostrar el número" : "Haz clic para esconder el número";
+    cell.onclick=()=>toggle(n);
+    grid.appendChild(cell);
+  }
+  document.getElementById("prev").disabled=page===0;
+  document.getElementById("next").disabled=page===pages.length-1;
+  updateStatus();
+}
+function toggle(n) {
+  if(hidden.has(n)) {
+    hidden.delete(n);
+    showToast(`¡Era el ${n}!`);
+  } else {
+    hidden.add(n);
+    showToast(`Número escondido 👀`);
+  }
+  render();
+}
+function hideRandom(count=1) {
+  const {start,end}=pages[page];
+  const available=[];
+  for(let n=start;n<=end;n++) if(!hidden.has(n)) available.push(n);
+  for(let i=0;i<Math.min(count,available.length);i++) {
+    const j=Math.floor(Math.random()*available.length);
+    hidden.add(available.splice(j,1)[0]);
+  }
+  render();
+}
+function updateStatus() {
+  const total=pages[page].end-pages[page].start+1;
+  let count=0;
+  for(let n=pages[page].start;n<=pages[page].end;n++) if(hidden.has(n)) count++;
+  status.textContent=`${count} número${count===1?"":"s"} escondido${count===1?"":"s"} en esta página`;
+  bar.style.width=(count/total*100)+"%";
+}
+function showToast(msg) {
+  toast.textContent=msg;
+  toast.classList.add("show");
+  clearTimeout(window._toast);
+  window._toast=setTimeout(()=>toast.classList.remove("show"),1100);
+}
+document.getElementById("prev").onclick=()=>{if(page>0){page--;render();}};
+document.getElementById("next").onclick=()=>{if(page<pages.length-1){page++;render();}};
+document.getElementById("hideRandom").onclick=()=>hideRandom(1);
+document.getElementById("hideSeveral").onclick=()=>hideRandom(5);
+document.getElementById("showAll").onclick=()=>{
+  const {start,end}=pages[page];
+  for(let n=start;n<=end;n++) hidden.delete(n);
+  render();
+};
+render();
+</script>
+</body>
+</html>
